@@ -42,6 +42,9 @@ def get_EP(row):
 #     spread = max(1, round(pow(math.e, -liquidity_ratio)*actual_spread/2*(1+stdev)))
 #     return pd.Series([xprice + spread * tick, xprice - ((spread + 1) * tick), xprice + ((spread + 1) * tick), xprice - (spread * tick)])
 
+def get_liability(row, tradebook):
+    pass
+
 def get_tick(price):
     if price <= 2:
         return 0.01
