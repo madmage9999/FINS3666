@@ -9,11 +9,13 @@ def trade(input):
     input['atl_ladder'] = [ast.literal_eval(x) for x in input['atl_ladder']]
     input[['best_BV', 'best_LV']] = input.apply(lambda row: get_price_volume(row), axis=1, result_type='expand')
     input[['expected_price']] = input.apply(lambda row: get_EP(row), axis=1, result_type='expand')
-    #input[['lay_BP', 'lay_LP', 'back_BP', 'back_LP']] = input.apply(lambda row: get_spread(row), axis=1, result_type='expand')
+    input[['total_volume']] = input['traded_volume'].sum()
+    print(input.total_volume)
+    input[['lay_BP', 'lay_LP', 'back_BP', 'back_LP']] = input.apply(lambda row: get_spread(row), axis=1, result_type='expand')
     # if liabilityk < 0 prefer to back
     # if 0<liabilityk<limit don't trade
     # if limit < liabilityk prefer to lay
-    print(input.values)
+    print(input)
 
 
 def get_price_volume(row):
@@ -30,20 +32,42 @@ def get_EP(row):
     xprice = (best_BP *(1 - P_up)) + (best_LP * P_up)
     return pd.Series([xprice])
 
-# def get_spread(row):
-#     amt_on_market = row.traded_volume
-#     total_traded = 
-#     traded_prices = 
-#     actual_spread = row.best_LV - row.best_BV
-#     tick = 
-#     xprice = row.expected_price
-#     liquidity_ratio = amt_on_market/total_traded * 100
-#     stdev = np.std(traded_prices)
-#     spread = max(1, round(pow(math.e, -liquidity_ratio)*actual_spread/2*(1+stdev)))
-#     return pd.Series([xprice + spread * tick, xprice - ((spread + 1) * tick), xprice + ((spread + 1) * tick), xprice - (spread * tick)])
+def get_total_traded(row):
+    return row.traded_volume
+
+def get_spread(row):
+    amt_on_market = row.traded_volume
+    total_traded = row.total_volume
+    traded_prices = [] #TODO row.traded_volume
+    actual_spread = row.best_LV - row.best_BV
+    tick = get_tick(row.back_best)
+    xprice = row.expected_price
+    liquidity_ratio = amt_on_market/total_traded * 100
+    stdev = np.std(traded_prices)
+    spread = max(1, round(pow(math.e, -liquidity_ratio)*actual_spread/2*(1+stdev)))
+   
+    return pd.Series([xprice + spread * tick, xprice - ((spread + 1) * tick), xprice + ((spread + 1) * tick), xprice - (spread * tick)])
+# Function to calculate total liability on the k-th horse
 
 def get_liability(row, tradebook):
-    pass
+    X = np.array([100, 150, 200, 250, 300])  # Amount layed on all horses(X_i)
+    Y = np.array([50, 30, 20, 70, 80])  # Amount backed and layed on all horses (Y_i)
+    Y_k = np.array([20, 30, 50])  # Amounts betted on each back-order (Y_{k,l})
+    BP_k = np.array([2.5, 3.0, 4.0])  # Back prices (BP_{k,l})
+    X_k = np.array([10, 15])  # Amounts betted on each lay-order (X_{k,j})
+    LP_k = np.array([5.0, 6.0])  # Lay prices (LP_{k,j})
+
+
+    # Indicator function for the k-th horse win
+    I_k = 1/row.expected_price
+
+    # Total liability calculation
+    TL_k = sum(X) - sum(Y) + #I_k * (sum(Y_k * BP_k) - sum(X_k * LP_k))
+    '''
+    if horse loses then liablity is how much is backed -b
+    else if horse wins then liablity is backed -b +profit back -loss lay
+    '''
+    return TL_k
 
 def get_tick(price):
     if price <= 2:
