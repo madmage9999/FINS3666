@@ -9,6 +9,10 @@ def trade(input):
     input['atl_ladder'] = [ast.literal_eval(x) for x in input['atl_ladder']]
     input[['best_BV', 'best_LV']] = input.apply(lambda row: get_price_volume(row), axis=1, result_type='expand')
     input[['expected_price']] = input.apply(lambda row: get_EP(row), axis=1, result_type='expand')
+    input[[]]
+    # if liabilityk < 0 prefer to back
+    # if 0<liabilityk<limit don't trade
+    # if limit < liabilityk prefer to lay
     print(input)
 
 
