@@ -13,16 +13,24 @@ def stream(input, tradebook):
     input[['total_volume']] = input['traded_volume'].sum()
     input[['lay_BP', 'lay_LP', 'back_BP', 'back_LP']] = input.apply(lambda row: get_spread(row), axis=1, result_type='expand')
     
-
+    input.apply(lambda row: trade(row, tradebook), axis=1)
     
     # if liabilityk < 0 prefer to back
     # if 0<liabilityk<limit don't trade
     # if limit < liabilityk prefer to lay
-    print(input)
-    print(tradebook)
 
-def trade():
-    pass
+def trade(row, tradebook):
+    '''trade/row'''
+    selection = row['selection_id']
+    if row.back_best >= row.back_BP:
+        print(f'backing {selection}')
+    if row.back_best >= row.lay_BP:
+        print(f'backing {selection}')
+    if row.lay_best <= row.back_LP:
+        print(f'laying {selection}')
+    if row.lay_best <= row.lay_LP:
+        print(f'laying {selection}')
+    
 
 def get_price_volume(row):
     best_bv = row.atb_ladder['v'][0]
@@ -42,37 +50,35 @@ def get_spread(row):
     amt_on_market = row.traded_volume
     total_traded = row.total_volume
     traded_prices = row.traded_volume_ladder['p']
-    print(traded_prices)
     actual_spread = row.best_LV - row.best_BV
     tick = get_tick((row.back_best+row.lay_best)/2)
-    print(tick)
     xprice = row.expected_price
     liquidity_ratio = amt_on_market/total_traded * 100
     stdev = np.std(traded_prices)
     spread = max(1, round(pow(math.e, -liquidity_ratio)*actual_spread/2*(1+stdev)))
-    print(spread)
+    spread = (spread + 1)/2
     return pd.Series([xprice + spread * tick, xprice - ((spread + 1) * tick), xprice + ((spread + 1) * tick), xprice - (spread * tick)])
 # Function to calculate total liability on the k-th horse
 
-# def get_liability(row, tradebook):
-#     X = np.array([100, 150, 200, 250, 300])  # Amount layed on all horses(X_i)
-#     Y = np.array([50, 30, 20, 70, 80])  # Amount backed and layed on all horses (Y_i)
-#     Y_k = np.array([20, 30, 50])  # Amounts betted on each back-order (Y_{k,l})
-#     BP_k = np.array([2.5, 3.0, 4.0])  # Back prices (BP_{k,l})
-#     X_k = np.array([10, 15])  # Amounts betted on each lay-order (X_{k,j})
-#     LP_k = np.array([5.0, 6.0])  # Lay prices (LP_{k,j})
+def get_liability(row, tradebook):
+    X = np.array([100, 150, 200, 250, 300])  # Amount layed on all horses(X_i)
+    Y = np.array([50, 30, 20, 70, 80])  # Amount backed and layed on all horses (Y_i)
+    Y_k = np.array([20, 30, 50])  # Amounts betted on each back-order (Y_{k,l})
+    BP_k = np.array([2.5, 3.0, 4.0])  # Back prices (BP_{k,l})
+    X_k = np.array([10, 15])  # Amounts betted on each lay-order (X_{k,j})
+    LP_k = np.array([5.0, 6.0])  # Lay prices (LP_{k,j})
 
 
-#     # Indicator function for the k-th horse win
-#     I_k = 1/row.expected_price
+    # Indicator function for the k-th horse win
+    I_k = 1/row.expected_price
 
-#     # Total liability calculation
-#     TL_k = sum(X) - sum(Y) + I_k * (sum(Y_k * BP_k) - sum(X_k * LP_k))    
-#     '''
-#     if horse loses then liablity is how much is backed -b
-#     else if horse wins then liablity is backed -b +profit back -loss lay
-#     '''
-#     return TL_k
+    # Total liability calculation
+    TL_k = sum(X) - sum(Y) + I_k * (sum(Y_k * BP_k) - sum(X_k * LP_k))    
+    '''
+    if horse loses then liablity is how much is backed -b
+    else if horse wins then liablity is backed -b +profit back -loss lay
+    '''
+    return TL_k
 
 def get_tick(price):
     if price <= 2:
@@ -116,4 +122,6 @@ if __name__ == "__main__":
     # start trading for each tick in the market stream
     for chunk in pd.read_csv('test_data.csv', chunksize=chunksize):
         stream(chunk, tradebook)
-        break
+        # print(chunk)
+        # print(tradebook)
+        # break
