@@ -3,20 +3,26 @@ import numpy as np
 import math
 import ast
 
-def trade(input):
+def stream(input, tradebook):
     # print(input.atb_ladder)
     input['atb_ladder'] = [ast.literal_eval(x) for x in input['atb_ladder']]
     input['atl_ladder'] = [ast.literal_eval(x) for x in input['atl_ladder']]
+    input['traded_volume_ladder'] = [ast.literal_eval(x) for x in input['traded_volume_ladder']]
     input[['best_BV', 'best_LV']] = input.apply(lambda row: get_price_volume(row), axis=1, result_type='expand')
     input[['expected_price']] = input.apply(lambda row: get_EP(row), axis=1, result_type='expand')
     input[['total_volume']] = input['traded_volume'].sum()
-    print(input.total_volume)
     input[['lay_BP', 'lay_LP', 'back_BP', 'back_LP']] = input.apply(lambda row: get_spread(row), axis=1, result_type='expand')
+    
+
+    
     # if liabilityk < 0 prefer to back
     # if 0<liabilityk<limit don't trade
     # if limit < liabilityk prefer to lay
     print(input)
+    print(tradebook)
 
+def trade():
+    pass
 
 def get_price_volume(row):
     best_bv = row.atb_ladder['v'][0]
@@ -32,42 +38,41 @@ def get_EP(row):
     xprice = (best_BP *(1 - P_up)) + (best_LP * P_up)
     return pd.Series([xprice])
 
-def get_total_traded(row):
-    return row.traded_volume
-
 def get_spread(row):
     amt_on_market = row.traded_volume
     total_traded = row.total_volume
-    traded_prices = [] #TODO row.traded_volume
+    traded_prices = row.traded_volume_ladder['p']
+    print(traded_prices)
     actual_spread = row.best_LV - row.best_BV
-    tick = get_tick(row.back_best)
+    tick = get_tick((row.back_best+row.lay_best)/2)
+    print(tick)
     xprice = row.expected_price
     liquidity_ratio = amt_on_market/total_traded * 100
     stdev = np.std(traded_prices)
     spread = max(1, round(pow(math.e, -liquidity_ratio)*actual_spread/2*(1+stdev)))
-   
+    print(spread)
     return pd.Series([xprice + spread * tick, xprice - ((spread + 1) * tick), xprice + ((spread + 1) * tick), xprice - (spread * tick)])
 # Function to calculate total liability on the k-th horse
 
-def get_liability(row, tradebook):
-    X = np.array([100, 150, 200, 250, 300])  # Amount layed on all horses(X_i)
-    Y = np.array([50, 30, 20, 70, 80])  # Amount backed and layed on all horses (Y_i)
-    Y_k = np.array([20, 30, 50])  # Amounts betted on each back-order (Y_{k,l})
-    BP_k = np.array([2.5, 3.0, 4.0])  # Back prices (BP_{k,l})
-    X_k = np.array([10, 15])  # Amounts betted on each lay-order (X_{k,j})
-    LP_k = np.array([5.0, 6.0])  # Lay prices (LP_{k,j})
+# def get_liability(row, tradebook):
+#     X = np.array([100, 150, 200, 250, 300])  # Amount layed on all horses(X_i)
+#     Y = np.array([50, 30, 20, 70, 80])  # Amount backed and layed on all horses (Y_i)
+#     Y_k = np.array([20, 30, 50])  # Amounts betted on each back-order (Y_{k,l})
+#     BP_k = np.array([2.5, 3.0, 4.0])  # Back prices (BP_{k,l})
+#     X_k = np.array([10, 15])  # Amounts betted on each lay-order (X_{k,j})
+#     LP_k = np.array([5.0, 6.0])  # Lay prices (LP_{k,j})
 
 
-    # Indicator function for the k-th horse win
-    I_k = 1/row.expected_price
+#     # Indicator function for the k-th horse win
+#     I_k = 1/row.expected_price
 
-    # Total liability calculation
-    TL_k = sum(X) - sum(Y) + #I_k * (sum(Y_k * BP_k) - sum(X_k * LP_k))
-    '''
-    if horse loses then liablity is how much is backed -b
-    else if horse wins then liablity is backed -b +profit back -loss lay
-    '''
-    return TL_k
+#     # Total liability calculation
+#     TL_k = sum(X) - sum(Y) + I_k * (sum(Y_k * BP_k) - sum(X_k * LP_k))    
+#     '''
+#     if horse loses then liablity is how much is backed -b
+#     else if horse wins then liablity is backed -b +profit back -loss lay
+#     '''
+#     return TL_k
 
 def get_tick(price):
     if price <= 2:
@@ -90,11 +95,25 @@ def get_tick(price):
         return 5
     else:
         return 10
+    
+def init_tradebook():
+    df = pd.read_csv('test_data.csv')
+    runner_id = df['selection_id'].unique().tolist()
+    runner_name = df['selection_name'].unique().tolist()
+    num_runners = len(runner_id)
+    tradebook = pd.DataFrame()
+    tradebook['selection_id'] = runner_id
+    tradebook['selection_name'] = runner_name 
+    tradebook['orders'] = [{'p': [], 'v': []}]*num_runners
+    tradebook['trades'] = [{'p': [], 'v': []}]*num_runners
+    return tradebook
 
 if __name__ == "__main__":
-    chunksize = 8 # get num runners in market
-    orderbook = pd.DataFrame()
-    tradebook = pd.DataFrame()
+    # initialise trade book
+    tradebook = init_tradebook()
+    chunksize = len(tradebook['selection_id'].unique().tolist()) # get num runners in market
+
+    # start trading for each tick in the market stream
     for chunk in pd.read_csv('test_data.csv', chunksize=chunksize):
-        trade(chunk)
+        stream(chunk, tradebook)
         break
