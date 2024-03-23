@@ -28,7 +28,7 @@ def trade(row, tradebook):
     selection = row['selection_id']
     selection = tradebook.loc[tradebook['selection_id'] == selection].iloc[0]
 
-    selection.back_orders['p'].append(row.lay_BP)  # Modify the order
+    selection.back_orders['p'].append(row.lay_BP)  # Submit the order
     selection.back_orders['p'].append(row.back_BP)
     selection.back_orders['v'].append(1)
     selection.back_orders['v'].append(1)
@@ -78,7 +78,11 @@ def get_spread(row):
     stdev = np.std(traded_prices)
     spread = max(1, round(pow(math.e, -liquidity_ratio)*actual_spread/2*(1+stdev)))
     spread = (spread + 1)/2
-    return pd.Series([xprice + spread * tick, xprice - ((spread + 1) * tick), xprice + ((spread + 1) * tick), xprice - (spread * tick)])
+    back_BP =float('%.2f'%(tick_round(xprice + spread * tick)))
+    back_LP =float('%.2f'%(tick_round(xprice - ((spread + 1) * tick))))
+    lay_BP = float('%.2f'%(tick_round(xprice + ((spread + 1) * tick))))
+    lay_LP = float('%.2f'%(tick_round(xprice - (spread * tick))))
+    return pd.Series([back_BP, back_LP, lay_BP, lay_LP])
 # Function to calculate total liability on the k-th horse
 
 def get_liability(row, tradebook):
@@ -99,6 +103,10 @@ def get_liability(row, tradebook):
     else if horse wins then liablity is backed -b +profit back -loss lay
     '''
     return TL_k
+
+def tick_round(price):
+    tick = get_tick(price)
+    return tick * round(price/tick)
 
 def get_tick(price):
     if price <= 2:
