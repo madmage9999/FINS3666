@@ -8,6 +8,10 @@ def stream(input, tradebook):
     input['atb_ladder'] = [ast.literal_eval(x) for x in input['atb_ladder']]
     input['atl_ladder'] = [ast.literal_eval(x) for x in input['atl_ladder']]
     input['traded_volume_ladder'] = [ast.literal_eval(x) for x in input['traded_volume_ladder']]
+    # tradebook['back_orders'] = [ast.literal_eval(x) for x in tradebook['back_orders']]
+    # tradebook['lay_orders'] = [ast.literal_eval(x) for x in tradebook['lay_orders']]
+    # tradebook['back_trades'] = [ast.literal_eval(x) for x in tradebook['back_trades']]
+    # tradebook['lay_trades'] = [ast.literal_eval(x) for x in tradebook['lay_trades']]
     input[['best_BV', 'best_LV']] = input.apply(lambda row: get_price_volume(row), axis=1, result_type='expand')
     input[['expected_price']] = input.apply(lambda row: get_EP(row), axis=1, result_type='expand')
     input[['total_volume']] = input['traded_volume'].sum()
@@ -22,6 +26,8 @@ def stream(input, tradebook):
 def trade(row, tradebook):
     '''trade/row'''
     selection = row['selection_id']
+    selection_book = tradebook.loc[tradebook['selection_id'] == selection]
+    print(selection_book.back_orders.to_dict()) #Todo
     if row.back_best >= row.back_BP:
         print(f'backing {selection}')
     if row.back_best >= row.lay_BP:
@@ -30,7 +36,6 @@ def trade(row, tradebook):
         print(f'laying {selection}')
     if row.lay_best <= row.lay_LP:
         print(f'laying {selection}')
-    
 
 def get_price_volume(row):
     best_bv = row.atb_ladder['v'][0]
@@ -67,7 +72,6 @@ def get_liability(row, tradebook):
     BP_k = np.array([2.5, 3.0, 4.0])  # Back prices (BP_{k,l})
     X_k = np.array([10, 15])  # Amounts betted on each lay-order (X_{k,j})
     LP_k = np.array([5.0, 6.0])  # Lay prices (LP_{k,j})
-
 
     # Indicator function for the k-th horse win
     I_k = 1/row.expected_price
@@ -110,8 +114,10 @@ def init_tradebook():
     tradebook = pd.DataFrame()
     tradebook['selection_id'] = runner_id
     tradebook['selection_name'] = runner_name 
-    tradebook['orders'] = [{'p': [], 'v': []}]*num_runners
-    tradebook['trades'] = [{'p': [], 'v': []}]*num_runners
+    tradebook['back_orders'] = [{'p': [], 'v': []}]*num_runners
+    tradebook['lay_orders'] = [{'p': [], 'v': []}]*num_runners
+    tradebook['back_trades'] = [{'p': [], 'v': []}]*num_runners
+    tradebook['lay_trades'] = [{'p': [], 'v': []}]*num_runners
     return tradebook
 
 if __name__ == "__main__":
@@ -122,6 +128,7 @@ if __name__ == "__main__":
     # start trading for each tick in the market stream
     for chunk in pd.read_csv('test_data.csv', chunksize=chunksize):
         stream(chunk, tradebook)
+        break
         # print(chunk)
         # print(tradebook)
         # break
