@@ -26,16 +26,32 @@ def stream(input, tradebook):
 def trade(row, tradebook):
     '''trade/row'''
     selection = row['selection_id']
-    selection_book = tradebook.loc[tradebook['selection_id'] == selection]
-    print(selection_book.back_orders.to_dict()) #Todo
-    if row.back_best >= row.back_BP:
-        print(f'backing {selection}')
-    if row.back_best >= row.lay_BP:
-        print(f'backing {selection}')
-    if row.lay_best <= row.back_LP:
-        print(f'laying {selection}')
-    if row.lay_best <= row.lay_LP:
-        print(f'laying {selection}')
+    selection = tradebook.loc[tradebook['selection_id'] == selection].iloc[0]
+
+    selection.back_orders['p'].append(row.lay_BP)  # Modify the order
+    selection.back_orders['p'].append(row.back_BP)
+    selection.back_orders['v'].append(1)
+    selection.back_orders['v'].append(1)
+
+    selection.lay_orders['p'].append(row.lay_LP)
+    selection.lay_orders['p'].append(row.back_LP)
+    selection.lay_orders['v'].append(1)
+    selection.lay_orders['v'].append(1)
+
+    for idx, back in enumerate(selection.back_orders['p']):
+        if row.back_best >= back:
+            selection.back_trades['p'].append(back)
+            selection.back_trades['v'].append(selection.back_orders['v'][idx])
+            selection.back_orders['p'].pop(idx)
+            selection.back_orders['p'].pop(idx)
+            #append to trade book
+
+    for idx, lay in enumerate(selection.lay_orders['p']):
+        if row.lay_best <= lay:
+            selection.lay_trades['p'].append(lay)
+            selection.lay_trades['v'].append(selection.lay_orders['v'][idx])
+            selection.lay_orders['p'].pop(idx)
+            selection.lay_orders['p'].pop(idx)
 
 def get_price_volume(row):
     best_bv = row.atb_ladder['v'][0]
@@ -110,14 +126,18 @@ def init_tradebook():
     df = pd.read_csv('test_data.csv')
     runner_id = df['selection_id'].unique().tolist()
     runner_name = df['selection_name'].unique().tolist()
-    num_runners = len(runner_id)
-    tradebook = pd.DataFrame()
-    tradebook['selection_id'] = runner_id
-    tradebook['selection_name'] = runner_name 
-    tradebook['back_orders'] = [{'p': [], 'v': []}]*num_runners
-    tradebook['lay_orders'] = [{'p': [], 'v': []}]*num_runners
-    tradebook['back_trades'] = [{'p': [], 'v': []}]*num_runners
-    tradebook['lay_trades'] = [{'p': [], 'v': []}]*num_runners
+
+    # Initialize the tradebook DataFrame
+    tradebook = pd.DataFrame({
+        'selection_id': runner_id,
+        'selection_name': runner_name,
+        'back_orders': None,
+        'lay_orders': None,
+        'back_trades': None,
+        'lay_trades': None
+    })
+    for col in ['back_orders', 'lay_orders', 'back_trades', 'lay_trades']:
+        tradebook[col] = tradebook[col].apply(lambda x: {'p': [], 'v': []})
     return tradebook
 
 if __name__ == "__main__":
@@ -128,7 +148,9 @@ if __name__ == "__main__":
     # start trading for each tick in the market stream
     for chunk in pd.read_csv('test_data.csv', chunksize=chunksize):
         stream(chunk, tradebook)
-        break
         # print(chunk)
         # print(tradebook)
         # break
+    tradebook = tradebook.drop('back_orders', axis=1)
+    tradebook = tradebook.drop('lay_orders', axis=1)
+    tradebook.to_csv('test_tradebook.csv')
