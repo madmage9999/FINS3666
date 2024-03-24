@@ -97,7 +97,9 @@ def get_liability(row, tradebook):
     I_k = 1/row.expected_price
 
     # Total liability calculation
-    TL_k = sum(X) - sum(Y) + I_k * (sum(Y_k * BP_k) - sum(X_k * LP_k))    
+    TL_k = sum(X) - sum(Y) + I_k * (sum(Y_k * BP_k) - sum(X_k * LP_k))
+    #TL_K = sum(volume layed) - sum(volume layed and backed)
+    # + W or Loss * (sum(if kth horse wins, return from lay and back) - sum(amount payable if kth horse wins))   
     '''
     if horse loses then liablity is how much is backed -b
     else if horse wins then liablity is backed -b +profit back -loss lay
