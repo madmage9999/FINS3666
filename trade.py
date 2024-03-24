@@ -8,10 +8,7 @@ def stream(input, tradebook):
     input['atb_ladder'] = [ast.literal_eval(x) for x in input['atb_ladder']]
     input['atl_ladder'] = [ast.literal_eval(x) for x in input['atl_ladder']]
     input['traded_volume_ladder'] = [ast.literal_eval(x) for x in input['traded_volume_ladder']]
-    # tradebook['back_orders'] = [ast.literal_eval(x) for x in tradebook['back_orders']]
-    # tradebook['lay_orders'] = [ast.literal_eval(x) for x in tradebook['lay_orders']]
-    # tradebook['back_trades'] = [ast.literal_eval(x) for x in tradebook['back_trades']]
-    # tradebook['lay_trades'] = [ast.literal_eval(x) for x in tradebook['lay_trades']]
+
     input[['best_BV', 'best_LV']] = input.apply(lambda row: get_price_volume(row), axis=1, result_type='expand')
     input[['expected_price']] = input.apply(lambda row: get_EP(row), axis=1, result_type='expand')
     input[['total_volume']] = input['traded_volume'].sum()
@@ -25,6 +22,8 @@ def stream(input, tradebook):
 
 def trade(row, tradebook):
     '''trade/row'''
+    # row[['liability']] = 
+    get_liability(row, tradebook)
     selection = row['selection_id']
     selection = tradebook.loc[tradebook['selection_id'] == selection].iloc[0]
 
@@ -86,25 +85,37 @@ def get_spread(row):
 # Function to calculate total liability on the k-th horse
 
 def get_liability(row, tradebook):
-    X = np.array([100, 150, 200, 250, 300])  # Amount layed on all horses(X_i)
-    Y = np.array([50, 30, 20, 70, 80])  # Amount backed and layed on all horses (Y_i)
-    Y_k = np.array([20, 30, 50])  # Amounts betted on each back-order (Y_{k,l})
-    BP_k = np.array([2.5, 3.0, 4.0])  # Back prices (BP_{k,l})
-    X_k = np.array([10, 15])  # Amounts betted on each lay-order (X_{k,j})
-    LP_k = np.array([5.0, 6.0])  # Lay prices (LP_{k,j})
+    selection = row.selection_id
+    selection = tradebook.loc[tradebook['selection_id'] == selection].iloc[0]
+    tradebook['lay_v_sum'] = tradebook['lay_trades'].apply(sum_v_values)
+    sum_X = tradebook['lay_v_sum'].sum() # Amount layed on all horses(X_i)
+    tradebook['back_v_sum'] = tradebook['back_trades'].apply(sum_v_values)
+    sum_Y = sum_X + tradebook['back_v_sum'].sum() # Amount backed and layed on all horses (Y_i)
+
+    Y_k = selection.back_trades['v']  # Amounts betted on each back-order (Y_{k,l}) on the K'th horse
+    BP_k = selection.back_trades['p'] # Back prices (BP_{k,l}) on the K'th horse
+    X_k = selection.lay_trades['v']  # Amounts betted on each lay-order (X_{k,j}) on the K'th horse
+    LP_k = selection.lay_trades['p']  # Lay prices (LP_{k,j}) on the K'th horse
 
     # Indicator function for the k-th horse win
     I_k = 1/row.expected_price
 
     # Total liability calculation
-    TL_k = sum(X) - sum(Y) + I_k * (sum(Y_k * BP_k) - sum(X_k * LP_k))
+    TL_k = sum_X - sum_Y + I_k * (sum(np.multiply(Y_k, BP_k)) - sum(np.multiply(X_k, LP_k)))
     #TL_K = sum(volume layed) - sum(volume layed and backed)
     # + W or Loss * (sum(if kth horse wins, return from lay and back) - sum(amount payable if kth horse wins))   
     '''
     if horse loses then liablity is how much is backed -b
     else if horse wins then liablity is backed -b +profit back -loss lay
     '''
-    return TL_k
+    print(TL_k)
+    return pd.Series([TL_k])
+
+def sum_p_values(row):
+    return sum(row['p'])
+
+def sum_v_values(row):
+    return sum(row['v'])
 
 def tick_round(price):
     tick = get_tick(price)
@@ -163,4 +174,4 @@ if __name__ == "__main__":
         # break
     tradebook = tradebook.drop('back_orders', axis=1)
     tradebook = tradebook.drop('lay_orders', axis=1)
-    tradebook.to_csv('test_tradebook.csv')
+    #tradebook.to_csv('test_tradebook.csv')
