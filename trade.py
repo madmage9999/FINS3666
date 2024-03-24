@@ -11,9 +11,10 @@ def stream(input, tradebook):
 
     input[['best_BV', 'best_LV']] = input.apply(lambda row: get_price_volume(row), axis=1, result_type='expand')
     input[['expected_price']] = input.apply(lambda row: get_EP(row), axis=1, result_type='expand')
+    print(input.expected_price)
     input[['total_volume']] = input['traded_volume'].sum()
     input[['lay_BP', 'lay_LP', 'back_BP', 'back_LP']] = input.apply(lambda row: get_spread(row), axis=1, result_type='expand')
-    
+    # print(input)
     input.apply(lambda row: trade(row, tradebook), axis=1)
     
 
@@ -24,33 +25,25 @@ def trade(row, tradebook):
     selection = row['selection_id']
     selection = tradebook.loc[tradebook['selection_id'] == selection].iloc[0]
     # if liabilityk < 0 prefer to back
-    # if 0<liabilityk<limit don't trade
+    # if 0<liabilityk<limit don't trade -> trade we want to take on risk so we can make money
     # if limit < liabilityk prefer to lay
 
     if row.liability.values[0] < 0:
-        print('prefer to back')
-        selection.back_orders['p'].append(row.lay_BP)  # Submit the order
+        # print('prefer to back')  # Submit the order
         selection.back_orders['p'].append(row.back_BP)
-        selection.back_orders['v'].append(1)
         selection.back_orders['v'].append(1)
     elif row.liability.values[0] > 1000:
         # if greater than limit lay
-        print('prefer to lay')
+        # print('prefer to lay')
         selection.lay_orders['p'].append(row.lay_LP)
-        selection.lay_orders['p'].append(row.back_LP)
-        selection.lay_orders['v'].append(1)
         selection.lay_orders['v'].append(1)
     else:
-        print('trade')
-        # otherwise trade both sides
-        selection.back_orders['p'].append(row.lay_BP)  # Submit the order
+        # print('trade')
+        # otherwise trade both sides with largest spread  # Submit the order
         selection.back_orders['p'].append(row.back_BP)
-        selection.back_orders['v'].append(1)
         selection.back_orders['v'].append(1)
 
         selection.lay_orders['p'].append(row.lay_LP)
-        selection.lay_orders['p'].append(row.back_LP)
-        selection.lay_orders['v'].append(1)
         selection.lay_orders['v'].append(1)
 
     for idx, back in enumerate(selection.back_orders['p']):
