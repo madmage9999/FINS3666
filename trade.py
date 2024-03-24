@@ -16,33 +16,49 @@ def stream(input, tradebook):
     
     input.apply(lambda row: trade(row, tradebook), axis=1)
     
+
+def trade(row, tradebook):
+    '''trade/row'''
+    row['liability'] = get_liability(row, tradebook)
+    #print(row.liability)
+    selection = row['selection_id']
+    selection = tradebook.loc[tradebook['selection_id'] == selection].iloc[0]
     # if liabilityk < 0 prefer to back
     # if 0<liabilityk<limit don't trade
     # if limit < liabilityk prefer to lay
 
-def trade(row, tradebook):
-    '''trade/row'''
-    # row[['liability']] = 
-    get_liability(row, tradebook)
-    selection = row['selection_id']
-    selection = tradebook.loc[tradebook['selection_id'] == selection].iloc[0]
+    if row.liability.values[0] < 0:
+        print('prefer to back')
+        selection.back_orders['p'].append(row.lay_BP)  # Submit the order
+        selection.back_orders['p'].append(row.back_BP)
+        selection.back_orders['v'].append(1)
+        selection.back_orders['v'].append(1)
+    elif row.liability.values[0] > 1000:
+        # if greater than limit lay
+        print('prefer to lay')
+        selection.lay_orders['p'].append(row.lay_LP)
+        selection.lay_orders['p'].append(row.back_LP)
+        selection.lay_orders['v'].append(1)
+        selection.lay_orders['v'].append(1)
+    else:
+        print('trade')
+        # otherwise trade both sides
+        selection.back_orders['p'].append(row.lay_BP)  # Submit the order
+        selection.back_orders['p'].append(row.back_BP)
+        selection.back_orders['v'].append(1)
+        selection.back_orders['v'].append(1)
 
-    selection.back_orders['p'].append(row.lay_BP)  # Submit the order
-    selection.back_orders['p'].append(row.back_BP)
-    selection.back_orders['v'].append(1)
-    selection.back_orders['v'].append(1)
-
-    selection.lay_orders['p'].append(row.lay_LP)
-    selection.lay_orders['p'].append(row.back_LP)
-    selection.lay_orders['v'].append(1)
-    selection.lay_orders['v'].append(1)
+        selection.lay_orders['p'].append(row.lay_LP)
+        selection.lay_orders['p'].append(row.back_LP)
+        selection.lay_orders['v'].append(1)
+        selection.lay_orders['v'].append(1)
 
     for idx, back in enumerate(selection.back_orders['p']):
         if row.back_best >= back:
             selection.back_trades['p'].append(back)
             selection.back_trades['v'].append(selection.back_orders['v'][idx])
             selection.back_orders['p'].pop(idx)
-            selection.back_orders['p'].pop(idx)
+            selection.back_orders['v'].pop(idx)
             #append to trade book
 
     for idx, lay in enumerate(selection.lay_orders['p']):
@@ -50,7 +66,7 @@ def trade(row, tradebook):
             selection.lay_trades['p'].append(lay)
             selection.lay_trades['v'].append(selection.lay_orders['v'][idx])
             selection.lay_orders['p'].pop(idx)
-            selection.lay_orders['p'].pop(idx)
+            selection.lay_orders['v'].pop(idx)
 
 def get_price_volume(row):
     best_bv = row.atb_ladder['v'][0]
@@ -98,8 +114,10 @@ def get_liability(row, tradebook):
     LP_k = selection.lay_trades['p']  # Lay prices (LP_{k,j}) on the K'th horse
 
     # Indicator function for the k-th horse win
-    I_k = 1/row.expected_price
+    # I_k = 1/row.expected_price
+    I_k = 1
 
+    #changing ik gives interesting results, keeping it at 1 for now to assume if all horses will win we need to match their liability
     # Total liability calculation
     TL_k = sum_X - sum_Y + I_k * (sum(np.multiply(Y_k, BP_k)) - sum(np.multiply(X_k, LP_k)))
     #TL_K = sum(volume layed) - sum(volume layed and backed)
@@ -108,7 +126,7 @@ def get_liability(row, tradebook):
     if horse loses then liablity is how much is backed -b
     else if horse wins then liablity is backed -b +profit back -loss lay
     '''
-    print(TL_k)
+    # print(TL_k)
     return pd.Series([TL_k])
 
 def sum_p_values(row):
@@ -174,4 +192,4 @@ if __name__ == "__main__":
         # break
     tradebook = tradebook.drop('back_orders', axis=1)
     tradebook = tradebook.drop('lay_orders', axis=1)
-    #tradebook.to_csv('test_tradebook.csv')
+    tradebook.to_csv('test_tradebook.csv')
