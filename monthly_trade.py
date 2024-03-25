@@ -253,7 +253,10 @@ def run(month: str, ouutput_dir: str):
 
         # start trading for each tick in the market stream
         for chunk in yield_chunks(race_df, chunksize):
-            stream(chunk, tradebook)
+            try:
+                stream(chunk, tradebook)
+            except Exception as e:
+                print(f"Error at market_id: {market_id}, chunk: {chunk.selection_id}, {chunk.seconds_before_scheduled_jump}")
             # break
         tradebook = tradebook.drop('back_orders', axis=1)
         tradebook = tradebook.drop('lay_orders', axis=1)
