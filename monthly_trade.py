@@ -148,20 +148,22 @@ def bet_apply_commission(df, com = 0.05):
 
 def stream(input, tradebook):
 
-    input['atb_ladder'] = [ast.literal_eval(x) for x in input['atb_ladder']]
-    input['atl_ladder'] = [ast.literal_eval(x) for x in input['atl_ladder']]
-    input['traded_volume_ladder'] = [ast.literal_eval(x) for x in input['traded_volume_ladder']]
+    try:
+        input['atb_ladder'] = [ast.literal_eval(x) for x in input['atb_ladder']]
+        input['atl_ladder'] = [ast.literal_eval(x) for x in input['atl_ladder']]
+        input['traded_volume_ladder'] = [ast.literal_eval(x) for x in input['traded_volume_ladder']]
 
-    input[['best_BV', 'best_LV']] = input.apply(lambda row: get_price_volume(row), axis=1, result_type='expand')
-    input[['expected_price']] = input.apply(lambda row: get_EP(row), axis=1, result_type='expand')
-    input[['total_volume']] = input['traded_volume'].sum()
-    input[['lay_BP', 'lay_LP', 'back_BP', 'back_LP']] = input.apply(lambda row: get_spread(row), axis=1, result_type='expand')
-    
-    input['favorites'] = input['bsp'].rank().astype(int)
-    # print(np.sum(1/input['expected_price'].to_numpy()))
-    capital = 1
-    input.apply(lambda row: trade(row, tradebook, capital), axis=1)
-
+        input[['best_BV', 'best_LV']] = input.apply(lambda row: get_price_volume(row), axis=1, result_type='expand')
+        input[['expected_price']] = input.apply(lambda row: get_EP(row), axis=1, result_type='expand')
+        input[['total_volume']] = input['traded_volume'].sum()
+        input[['lay_BP', 'lay_LP', 'back_BP', 'back_LP']] = input.apply(lambda row: get_spread(row), axis=1, result_type='expand')
+        
+        input['favorites'] = input['bsp'].rank().astype(int)
+        # print(np.sum(1/input['expected_price'].to_numpy()))
+        capital = 1
+        input.apply(lambda row: trade(row, tradebook, capital), axis=1)
+    except Exception as e:
+        print(e) 
     # limit:= multiplying the overround with the wagered amount
 
 def trade(row, tradebook, capital):
