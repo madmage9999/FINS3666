@@ -23,6 +23,8 @@ from betfairlightweight.resources.bettingresources import (
     MarketBook
 )
 
+import argparse
+
 import warnings
 warnings.filterwarnings("ignore")
 
