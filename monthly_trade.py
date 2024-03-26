@@ -247,7 +247,7 @@ def run(month: str, ouutput_dir: str):
     monthly_tradebook = pd.DataFrame()
 
     for market_id, race_df in race_groups:
-        print(f'Trading for market_id: {market_id}')
+        # print(f'Trading for market_id: {market_id}')
         tradebook = init_tradebook(race_df)
         chunksize = len(tradebook['selection_id'].unique().tolist()) # get num runners in market
 
@@ -334,7 +334,7 @@ if __name__ == '__main__':
     # initialise trade book
     # month = '2023_12'
     month = args.month
-    output_dir = f'trade_result_2/{month}'
+    output_dir = f'trade_result_all_tracks/{month}'
     # Create output folder
     os.makedirs(output_dir, exist_ok=True)
 

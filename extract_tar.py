@@ -22,6 +22,14 @@ from betfairlightweight.resources.bettingresources import (
     PriceSize,
     MarketBook
 )
+
+import warnings
+warnings.filterwarnings("ignore")
+
+parser = argparse.ArgumentParser()
+parser.add_argument("-m", "--month")
+args = parser.parse_args()
+
 # Variables
 log1_Start = 60 * 30 # Seconds before scheduled off to start recording data for data segment one
 log1_Step = 60       # Seconds between log steps for first data segment
@@ -115,10 +123,10 @@ def pull_ladder_traded(availableLadder, n = 5):
 def filter_market(market: MarketBook) -> bool: 
 
     d = market.market_definition
-    track_filter = ['Bendigo', 'Sandown', 'Flemington', 'Caulfield', 'Moonee Valley']
+    # track_filter = ['Bendigo', 'Sandown', 'Flemington', 'Caulfield', 'Moonee Valley']  # filter out tracks
 
     return (d.country_code == 'AU' 
-        and d.venue in track_filter
+        # and d.venue in track_filter
         and d.market_type == 'WIN' 
         and (c := split_anz_horse_market_name(d.name)[2]) != 'trot' and c != 'pace')
  
@@ -303,7 +311,7 @@ def parse_preplay_prices(dir, out_file):
             loop_preplay_prices(stream, writer)
 
 if __name__ == '__main__':
-    month = '2023_12'
+    month = args.month
     output_dir = f'extracted_data/{month}'
     # Create output folder
     os.makedirs(output_dir, exist_ok=True)
