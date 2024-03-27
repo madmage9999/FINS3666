@@ -161,12 +161,13 @@ def stream(input, tradebook):
         input['favorites'] = input['bsp'].rank().astype(int)
         # print(np.sum(1/input['expected_price'].to_numpy()))
         capital = 1
-        input.apply(lambda row: trade(row, tradebook, capital), axis=1)
+        limit = 50
+        input.apply(lambda row: trade(row, tradebook, capital, limit), axis=1)
     except Exception as e:
         print(e) 
     # limit:= multiplying the overround with the wagered amount
 
-def trade(row, tradebook, capital):
+def trade(row, tradebook, capital, limit):
     '''trade/row'''
     try:
         n_horses = len(tradebook)
@@ -205,7 +206,7 @@ def trade(row, tradebook, capital):
         if row.liability.values[0] < 0:
             selection.back_orders['p'].append(row.back_BP)
             selection.back_orders['v'].append(stake)
-        elif row.liability.values[0] > 1000:
+        elif row.liability.values[0] > limit:
             # if greater than limit lay
             selection.lay_orders['p'].append(row.lay_LP)
             selection.lay_orders['v'].append(stake)
@@ -239,7 +240,7 @@ def yield_chunks(df, chunk_size):
     for i in range(0, len(df), chunk_size):
         yield df.iloc[i:i+chunk_size]
 
-def run(month: str, ouutput_dir: str):
+def run(month: str, output_dir: str):
     
     monthly_data = pd.read_csv(f'extracted_data/{month}/{month}_preprocessed.csv')
     race_groups = monthly_data.groupby('market_id')
@@ -334,7 +335,7 @@ if __name__ == '__main__':
     # initialise trade book
     # month = '2023_12'
     month = args.month
-    output_dir = f'trade_result_all_tracks/{month}'
+    output_dir = f'trade_result_10/{month}'
     # Create output folder
     os.makedirs(output_dir, exist_ok=True)
 

@@ -14,20 +14,20 @@ def all_summary():
     jan = '2024_01'
     feb = '2024_02'
 
-    df1 = pd.read_csv(f'trade_result_2/{dec}/{dec}_summary.csv',
+    df1 = pd.read_csv(f'trade_result_3/{dec}/{dec}_summary.csv',
                     dtype={'market_id': 'string', 'selection_id': 'string'},
                     )
-    df2 = pd.read_csv(f'trade_result_2/{jan}/{jan}_summary.csv',
+    df2 = pd.read_csv(f'trade_result_3/{jan}/{jan}_summary.csv',
                     dtype={'market_id': 'string', 'selection_id': 'string'},
                     )
-    df3 = pd.read_csv(f'trade_result_2/{feb}/{feb}_summary.csv',
+    df3 = pd.read_csv(f'trade_result_3/{feb}/{feb}_summary.csv',
                     dtype={'market_id': 'string', 'selection_id': 'string'},
                     )
     summary = pd.concat([df1, df2, df3], axis=0)
     summary['gpl'] = summary['back_return'] + summary['lay_return']
     summary['stake'] = summary['back_v_sum'] + summary['lay_v_sum']
 
-    output_dir = f'trade_result_all_tracks'
+    output_dir = f'trade_result_3'
     summary.to_csv(f'{output_dir}/all_months_summary.csv', index=False)
 
     eval_df = bet_eval_metrics(summary)
@@ -43,22 +43,22 @@ def bet_eval_metrics(d):
 
 if __name__ == "__main__":
 
-    extract1_thread = threading.Thread(target=run_script, args=("./extract_tar.py", "2023_12"))
-    extract2_thread = threading.Thread(target=run_script, args=("./extract_tar.py", "2024_01"))
-    extract3_thread = threading.Thread(target=run_script, args=("./extract_tar.py", "2024_02"))
+    # extract1_thread = threading.Thread(target=run_script, args=("./extract_tar.py", "2023_12"))
+    # extract2_thread = threading.Thread(target=run_script, args=("./extract_tar.py", "2024_01"))
+    # extract3_thread = threading.Thread(target=run_script, args=("./extract_tar.py", "2024_02"))
 
-    print("Start extraction.")
+    # print("Start extraction.")
 
-    extract1_thread.start()
-    extract2_thread.start()
-    extract3_thread.start()
+    # extract1_thread.start()
+    # extract2_thread.start()
+    # extract3_thread.start()
 
-    extract1_thread.join()
-    extract2_thread.join()
-    extract3_thread.join()
+    # extract1_thread.join()
+    # extract2_thread.join()
+    # extract3_thread.join()
 
-    print("All extraction scripts have finished executing.")
-    time.sleep(3)
+    # print("All extraction scripts have finished executing.")
+    # time.sleep(3)
 
     trade1_thread = threading.Thread(target=run_script, args=("./monthly_trade.py", "2023_12"))
     trade2_thread = threading.Thread(target=run_script, args=("./monthly_trade.py", "2024_01"))
