@@ -60,22 +60,22 @@ if __name__ == "__main__":
     # print("All extraction scripts have finished executing.")
     # time.sleep(3)
 
-    trade1_thread = threading.Thread(target=run_script, args=("./monthly_trade.py", "2023_12"))
-    trade2_thread = threading.Thread(target=run_script, args=("./monthly_trade.py", "2024_01"))
-    trade3_thread = threading.Thread(target=run_script, args=("./monthly_trade.py", "2024_02"))
+    # trade1_thread = threading.Thread(target=run_script, args=("./monthly_trade.py", "2023_12"))
+    # trade2_thread = threading.Thread(target=run_script, args=("./monthly_trade.py", "2024_01"))
+    # trade3_thread = threading.Thread(target=run_script, args=("./monthly_trade.py", "2024_02"))
 
-    print("Start backtest.")
+    # print("Start backtest.")
 
-    trade1_thread.start()
-    trade2_thread.start()
-    trade3_thread.start()
+    # trade1_thread.start()
+    # trade2_thread.start()
+    # trade3_thread.start()
 
-    trade1_thread.join()
-    trade2_thread.join()
-    trade3_thread.join()
+    # trade1_thread.join()
+    # trade2_thread.join()
+    # trade3_thread.join()
 
-    print("All backtest scripts have finished executing.")
-    time.sleep(3)
+    # print("All backtest scripts have finished executing.")
+    # time.sleep(3)
 
     print("Combining summary.")
     all_summary()
